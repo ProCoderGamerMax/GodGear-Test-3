@@ -1,0 +1,53 @@
+name: Build GodGear
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+  workflow_dispatch:   # adds the manual "Run workflow" button
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: current
+
+      # Creates the standard Gradle Wrapper (gradlew, gradlew.bat, gradle/wrapper/*) if the repo doesn't have one
+      - name: Generate Gradle Wrapper
+        run: test -f gradle/wrapper/gradle-wrapper.jar || gradle wrapper --no-daemon
+
+      - name: Build
+        run: |
+          chmod +x gradlew
+          ./gradlew build --no-daemon
+
+      - name: Upload plugin jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: GodGear-jar
+          path: build/libs/*.jar
+
+      # Download this once and commit its contents to make the wrapper permanent
+      - name: Upload Gradle wrapper files
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-wrapper-files
+          path: |
+            gradlew
+            gradlew.bat
+            gradle/wrapper/
